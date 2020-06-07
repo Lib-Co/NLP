@@ -21,7 +21,7 @@ public class NLP {
                 line = br.readLine();
                 if (line != null) {
                     //Whitespace splitting
-                    String[] result = line.split("\\s+");
+                    String[] result = line.split("—|\\s+" );
                     tokens.addAll(Arrays.asList(result));
                 }
             }
@@ -38,9 +38,7 @@ public class NLP {
             System.out.println(e);
         }
 
-        System.out.println(potentials);
         potentials = removeStartOfSentence(tokens, potentials);
-        System.out.println(potentials);
 
         //Assume potentials is now the true list of proper nouns
         String redacted = redactProperNouns(tokens, potentials);
@@ -59,25 +57,30 @@ public class NLP {
             }
             int x = p - 1;
             String previous = tokens.get(x);
+            //String [] punctuation = {".", "?", "!"};
             if (!previous.endsWith(".")) {
                 properNouns.add(p);
             }
         }
-        System.out.println(properNouns);
+        removeI(tokens, properNouns);
+        return properNouns;
+    }
+
+    public static List<Integer> removeI(List<String> tokens, List<Integer> properNouns) {
+        //Remove "I" from proper nouns list. Can be reimplemented
+        properNouns.removeIf(p -> tokens.get(p).equals("I"));
         return properNouns;
     }
 
     public static String redactProperNouns(List<String> tokens, List<Integer> properNouns) {
         //Get tokens to redact via properNouns indices
         String tokenToRedact;
-
         List<String> redactedTokens = new ArrayList<>(tokens);
         for (Integer p : properNouns) {
             tokenToRedact = tokens.get(p);
             String asteriskString = "*".repeat(tokenToRedact.length());
             redactedTokens.set(p, asteriskString);
         }
-        System.out.println(redactedTokens);
         return String.join(" ", redactedTokens);
     }
 
