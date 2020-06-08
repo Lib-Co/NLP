@@ -57,9 +57,15 @@ public class NLP {
             }
             int x = p - 1;
             String previous = tokens.get(x);
-            //String [] punctuation = {".", "?", "!"};
-            if (!previous.endsWith(".")) {
-                properNouns.add(p);
+            if (previous.length() > 0) {
+                String lastChar = previous.substring(previous.length() - 1);
+                try {
+                    if (!lastChar.matches("[.!?\\-]")) {
+                        properNouns.add(p);
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("oops");
+                }
             }
         }
         removeI(tokens, properNouns);
@@ -78,8 +84,10 @@ public class NLP {
         List<String> redactedTokens = new ArrayList<>(tokens);
         for (Integer p : properNouns) {
             tokenToRedact = tokens.get(p);
-            String asteriskString = "*".repeat(tokenToRedact.length());
-            redactedTokens.set(p, asteriskString);
+            if (!tokenToRedact.endsWith("[.!?\\-]")) {
+                String asteriskString = "*".repeat(tokenToRedact.length());
+                redactedTokens.set(p, asteriskString);
+            }
         }
         return String.join(" ", redactedTokens);
     }
