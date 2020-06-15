@@ -1,32 +1,28 @@
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 
 public class NLP {
-//    private List<String> replacements = new ArrayList<>();
 
-    public static List<String> splitText() {
+    public static void processText() throws FileNotFoundException {
         InputStreamReader reader;
         BufferedReader br;
         List<Integer> potentials = new ArrayList<>();
         List<String> tokens = new ArrayList<>();
 
         try {
-            reader = new InputStreamReader(new FileInputStream("/home/libby/Dev/AP/resources/Q4/warandpeaceTEST.txt"));
+            reader = new InputStreamReader(new FileInputStream("warandpeace.txt"));
             br = new BufferedReader(reader);
             String line = br.readLine();
             while (line != null) {
                 line = br.readLine();
                 if (line != null) {
-                    //Whitespace splitting
-                    String[] result = line.split("—|\\s+" );
+                    //Whitespace splitting of text into tokens and add all into result array
+                    String[] result = line.split("—|\\s+");
                     tokens.addAll(Arrays.asList(result));
                 }
             }
 
-            //Check for capitalisation: if caps, add to 'potentials' array, then add all tokens to result
+            //Check for capitalisation: if capitalised, add index to the potentials list
             for (int i = 0; i < tokens.size(); i++) {
                 String token = tokens.get(i);
                 if (token.length() > 0 && Character.isUpperCase(token.charAt(0))) {
@@ -38,17 +34,21 @@ public class NLP {
             System.out.println(e);
         }
 
+        //Remove start of sentence capitalised tokens from the list of potentials
         potentials = removeStartOfSentence(tokens, potentials);
 
         //Assume potentials is now the true list of proper nouns
         String redacted = redactProperNouns(tokens, potentials);
-        System.out.println(String.join(" ", tokens));
+
+        //Redirect output to write to text file
+        PrintStream redactedFile = new PrintStream("warandpeace-redacted.txt");
+        System.setOut(redactedFile);
         System.out.println(redacted);
-        return tokens;
+
     }
 
     public static List<Integer> removeStartOfSentence(List<String> tokens, List<Integer> potentials) {
-        //Iterate through potentials and ignore start of sentence capitals
+        //Iterate through potentials and discount start of sentence capitals
         List<Integer> properNouns = new ArrayList<>();
         for (Integer p : potentials) {
             if (p == 0) {
@@ -57,14 +57,30 @@ public class NLP {
             }
             int x = p - 1;
             String previous = tokens.get(x);
+            String current = tokens.get(p);
+
+            //Determine start of sentence by checking the last char of the previous token
             if (previous.length() > 0) {
                 String lastChar = previous.substring(previous.length() - 1);
                 try {
                     if (!lastChar.matches("[.!?\\-]")) {
                         properNouns.add(p);
                     }
+                    /*
+                    Check if token already appears in properNouns array list.
+                    If it exists, add the token as is a verified proper noun which occurs at the start of a sentence
+                     */
+                    List<Integer> toAdd = new ArrayList<>();
+                    for (Integer prop : properNouns) {
+                        String text = tokens.get(prop);
+                        if (text.equals(current)) {
+                            toAdd.add(p);
+                        }
+                    }
+                    properNouns.addAll(toAdd);
+
                 } catch (NumberFormatException e) {
-                    System.out.println("oops");
+                    System.out.println("e");
                 }
             }
         }
@@ -72,14 +88,13 @@ public class NLP {
         return properNouns;
     }
 
-    public static List<Integer> removeI(List<String> tokens, List<Integer> properNouns) {
-        //Remove "I" from proper nouns list. Can be reimplemented
+    //Remove "I" from proper nouns list
+    public static void removeI(List<String> tokens, List<Integer> properNouns) {
         properNouns.removeIf(p -> tokens.get(p).equals("I"));
-        return properNouns;
     }
 
+    //Get tokens to redact via proper nouns list of indices and replace each char with an asterisk
     public static String redactProperNouns(List<String> tokens, List<Integer> properNouns) {
-        //Get tokens to redact via properNouns indices
         String tokenToRedact;
         List<String> redactedTokens = new ArrayList<>(tokens);
         for (Integer p : properNouns) {
@@ -89,18 +104,27 @@ public class NLP {
                 redactedTokens.set(p, asteriskString);
             }
         }
-        return String.join(" ", redactedTokens);
+        return join(" ", redactedTokens);
     }
 
+    //Reimplemented String.join method
+    public static String join(CharSequence delimiter, Iterable<? extends CharSequence> redactedTokens) {
+        Objects.requireNonNull(delimiter);
+        Objects.requireNonNull(redactedTokens);
+        StringJoiner joiner = new StringJoiner(delimiter);
+        for (CharSequence cs : redactedTokens) {
+            joiner.add(cs);
+        }
+        return joiner.toString();
+    }
 
     public static void main(String[] args) {
         try {
-            splitText();
+            processText();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 }
 
-//Need to reimplement replaceAll
 
